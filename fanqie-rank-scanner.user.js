@@ -86,10 +86,21 @@
   document.getElementById("frs-copy").onclick = async () => {
     if (!lastItems.length) lastItems = extract();
     if (!lastItems.length) return setStatus("无可导出内容");
+    const md = toCardsMd(lastItems);
     try {
-      await navigator.clipboard.writeText(toCardsMd(lastItems));
+      await navigator.clipboard.writeText(md);
       setStatus(`已复制 ${lastItems.length} 张素材卡，去 Obsidian 粘贴即可`);
-    } catch (e) { setStatus("复制失败：" + e.message); }
+    } catch (e) {
+      // 剪贴板 API 不可用时降级：隐藏 textarea + execCommand
+      const ta = document.createElement("textarea");
+      ta.value = md;
+      ta.style.cssText = "position:fixed;opacity:0;";
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand("copy");
+      ta.remove();
+      setStatus(ok ? `已复制 ${lastItems.length} 张素材卡（降级通道）` : "复制失败：" + e.message);
+    }
   };
   document.getElementById("frs-json").onclick = () => {
     if (!lastItems.length) lastItems = extract();
